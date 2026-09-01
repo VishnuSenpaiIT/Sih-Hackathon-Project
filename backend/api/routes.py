@@ -56,6 +56,42 @@ def get_hardware_status():
     return hardware_manager.get_hardware_status()
 
 
+@router.post("/hardware/test", tags=["Hardware"])
+def test_hardware_actuation(command: str = Query(..., description="Command to send: G, Y, R, A, C")):
+    """Directly sends an actuation command (G, Y, R, A, C) to test physical LEDs."""
+    cmd = command.upper().strip()
+    if cmd not in {"G", "Y", "R", "A", "C", "H"}:
+        raise HTTPException(status_code=400, detail=f"Invalid command '{cmd}'. Must be G, Y, R, A, C, or H")
+    success = hardware_manager.active_controller.send_command(cmd)
+    hardware_manager.last_dispatched_command = cmd
+    return {
+        "status": "dispatched" if success else "failed",
+        "command": cmd,
+        "hardware_state": hardware_manager.get_hardware_status()
+    }
+
+
+@router.post("/hardware/cycle", tags=["Hardware"])
+async def cycle_hardware_demo(delay: float = Query(2.5, description="Seconds per light state")):
+    """
+    Sequentially cycles through all physical lights to test all LEDs:
+    Green (2.5s) -> Yellow (2.5s) -> Red (2.5s) -> Emergency Hazard Strobe (3s) -> Clear
+    """
+    import asyncio
+    async def _runner():
+        for cmd in ["G", "Y", "R", "A", "C", "G"]:
+            try:
+                hardware_manager.active_controller.send_command(cmd)
+                hardware_manager.last_dispatched_command = cmd
+            except Exception:
+                pass
+            await asyncio.sleep(delay)
+    asyncio.create_task(_runner())
+    return {"status": "started", "message": f"Cycling all lights: Green -> Yellow -> Red -> Emergency Hazard Strobe -> Green ({delay}s each)"}
+
+
+
+
 
 @router.get("/streams", tags=["Cameras"])
 def list_streams(db: Session = Depends(get_db)):
@@ -323,8 +359,14 @@ async def upload_video(
         )
 
     # Sanitize filename and save to uploads/
-    clean_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", Path(filename).name)
-    save_path = UPLOAD_DIR / clean_name
+    raw_name = Path(filename).name
+    clean_name = re.sub(r"[^\w\s\.-]", "", raw_name).strip()
+    clean_name = re.sub(r"\s+", " ", clean_name)
+    if not clean_name:
+        clean_name = f"uploaded_video{ext}"
+
+    safe_disk_name = re.sub(r"[^\w\.-]", "_", clean_name)
+    save_path = UPLOAD_DIR / safe_disk_name
 
     try:
         with open(save_path, "wb") as buffer:
@@ -335,10 +377,12 @@ async def upload_video(
 
     fps = target_fps if target_fps is not None else (fps_query if fps_query is not None else 10.0)
 
+    display_name = clean_name if len(clean_name) <= 28 else f"{clean_name[:20]}…{ext}"
+
     # Automatically register/update CameraModel for cam_upload
     cam = CameraModel(
         id="cam_upload",
-        name=f"Uploaded: {clean_name}",
+        name=f"Uploaded: {display_name}",
         stream_url="/api/streams/cam_upload/mjpeg",
         junction_name="Uploaded Video Analysis",
         latitude=28.6139,
@@ -346,6 +390,7 @@ async def upload_video(
         enabled=True,
         fps=fps
     )
+
     db.merge(cam)
     db.commit()
 

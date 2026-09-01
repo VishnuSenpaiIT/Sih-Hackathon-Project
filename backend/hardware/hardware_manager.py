@@ -80,6 +80,10 @@ class HardwareManager:
         self.mock_controller = MockArduinoController()
         self.active_controller: HardwareController = self.mock_controller
 
+        # Configurable demo thresholds (Low: Green < 15, Yellow: 15-28, Red: > 28)
+        self.threshold_low: float = float(os.getenv("THRESHOLD_LOW", "15.0"))
+        self.threshold_high: float = float(os.getenv("THRESHOLD_HIGH", "28.0"))
+
         # Tracking state
         self.last_dispatched_command: Optional[str] = None
         self.last_density: Optional[float] = None
@@ -88,7 +92,15 @@ class HardwareManager:
         # Start auto-detection background thread
         self.start()
 
+    def set_thresholds(self, low: float, high: float):
+        """Sets custom threshold cutoffs for Green/Yellow/Red transitions."""
+        with self._lock:
+            self.threshold_low = float(low)
+            self.threshold_high = float(high)
+            logger.info(f"Hardware thresholds updated: Low (Green) < {low}, High (Red) > {high}")
+
     def start(self):
+
         """Starts background auto-detection thread if not already running."""
         with self._lock:
             if self._running:
@@ -226,12 +238,13 @@ class HardwareManager:
             if is_anomaly:
                 target_cmd = "A"
             else:
-                if density < 33.0:
+                if density < self.threshold_low:
                     target_cmd = "G"
-                elif density <= 66.0:
+                elif density <= self.threshold_high:
                     target_cmd = "Y"
                 else:
                     target_cmd = "R"
+
 
             # On-change filter: Only dispatch if state differs from last sent
             if target_cmd == self.last_dispatched_command:

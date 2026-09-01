@@ -96,13 +96,30 @@ export default function CameraFeed({
     }
   };
 
+  // Formats camera title cleanly, truncating overly long uploaded video filenames
+  const getDisplayTitle = () => {
+    if (!activeCamera) return 'All Cameras Overview';
+    let name = activeCamera.name || 'Camera Feed';
+    if (name.startsWith('Uploaded:')) {
+      let raw = name.replace(/^Uploaded:\s*/, '').trim();
+      if (raw.length > 28) {
+        const dotIdx = raw.lastIndexOf('.');
+        const ext = dotIdx !== -1 ? raw.slice(dotIdx) : '';
+        const base = dotIdx !== -1 ? raw.slice(0, dotIdx) : raw;
+        raw = base.slice(0, 20) + '…' + ext;
+      }
+      return `Uploaded: ${raw}`;
+    }
+    return name;
+  };
+
   return (
     <div className="feed-card">
       {/* Feed Header */}
       <div className="feed-header">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <h2>{activeCamera ? activeCamera.name : 'All Cameras Overview'}</h2>
+            <h2>{getDisplayTitle()}</h2>
             {isUploadCam && (
               <span className="badge badge-upload-cam" style={{ fontSize: '0.7rem' }}>
                 CUSTOM VIDEO

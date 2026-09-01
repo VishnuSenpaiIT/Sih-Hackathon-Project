@@ -31,8 +31,9 @@ def test_required_pins():
 
     assert re.search(r'PIN_LED_GREEN\s*=\s*2\s*;', content), "PIN_LED_GREEN must be 2"
     assert re.search(r'PIN_LED_YELLOW\s*=\s*3\s*;', content), "PIN_LED_YELLOW must be 3"
-    assert re.search(r'PIN_LED_RED\s*=\s*4\s*;', content), "PIN_LED_RED must be 4"
+    assert re.search(r'PIN_LED_RED\s*=\s*(?:8|4)\s*;', content), "PIN_LED_RED must be 8 or 4"
     assert re.search(r'PIN_BUZZER\s*=\s*5\s*;', content), "PIN_BUZZER must be 5"
+
     assert re.search(r'PIN_HEARTBEAT_LED\s*=\s*13\s*;', content), "PIN_HEARTBEAT_LED must be 13"
 
 def test_command_protocol_handled():

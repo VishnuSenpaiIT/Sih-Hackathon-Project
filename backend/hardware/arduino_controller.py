@@ -39,8 +39,8 @@ class ArduinoController(HardwareController):
         self,
         port: str,
         baudrate: int = 9600,
-        write_timeout: float = 0.2,
-        read_timeout: float = 0.5
+        write_timeout: float = 0.5,
+        read_timeout: float = 1.5
     ):
         self.port: str = port
         self.baudrate: int = baudrate
@@ -86,8 +86,8 @@ class ArduinoController(HardwareController):
                     write_timeout=self.write_timeout
                 )
 
-                # Arduino resets on serial open; wait briefly for bootloader
-                time.sleep(1.5)
+                # Arduino Uno / CH340 resets on DTR toggle; allow 2.0s for bootloader to finish
+                time.sleep(2.0)
                 self._serial.reset_input_buffer()
                 self._serial.reset_output_buffer()
 
@@ -95,7 +95,7 @@ class ArduinoController(HardwareController):
                 self._serial.write(b"H\n")
                 self._serial.flush()
 
-                # Wait up to 0.5s for "OK" response
+                # Wait up to read_timeout for "OK" response
                 start_time = time.time()
                 handshake_ok = False
                 while (time.time() - start_time) < self.read_timeout:

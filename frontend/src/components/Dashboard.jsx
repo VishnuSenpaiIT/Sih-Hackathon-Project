@@ -89,7 +89,52 @@ export default function Dashboard({ latestEvent, hardwareState: propHardwareStat
             </span>
           </div>
         </div>
+
+        {/* Live Manual Actuation Test Buttons */}
+        <div style={{ marginTop: '0.65rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+          <button 
+            type="button"
+            title="Test physical Green LED (Pin 2)"
+            style={{ fontSize: '0.72rem', padding: '0.2rem 0.45rem', borderRadius: '4px', cursor: 'pointer', background: 'rgba(16,185,129,0.15)', border: '1px solid #10b981', color: '#10b981' }}
+            onClick={() => fetch('/api/hardware/test?command=G', { method: 'POST' })}
+          >
+            🟢 Green
+          </button>
+          <button 
+            type="button"
+            title="Test physical Yellow LED (Pin 3)"
+            style={{ fontSize: '0.72rem', padding: '0.2rem 0.45rem', borderRadius: '4px', cursor: 'pointer', background: 'rgba(245,158,11,0.15)', border: '1px solid #f59e0b', color: '#f59e0b' }}
+            onClick={() => fetch('/api/hardware/test?command=Y', { method: 'POST' })}
+          >
+            🟡 Yellow
+          </button>
+          <button 
+            type="button"
+            title="Test physical Red LED (Pin 4)"
+            style={{ fontSize: '0.72rem', padding: '0.2rem 0.45rem', borderRadius: '4px', cursor: 'pointer', background: 'rgba(239,68,68,0.15)', border: '1px solid #ef4444', color: '#ef4444' }}
+            onClick={() => fetch('/api/hardware/test?command=R', { method: 'POST' })}
+          >
+            🔴 Red
+          </button>
+          <button 
+            type="button"
+            title="Test Emergency Hazard Alternating Strobe"
+            style={{ fontSize: '0.72rem', padding: '0.2rem 0.45rem', borderRadius: '4px', cursor: 'pointer', background: 'rgba(168,85,247,0.15)', border: '1px solid #a855f7', color: '#c084fc' }}
+            onClick={() => fetch('/api/hardware/test?command=A', { method: 'POST' })}
+          >
+            🚨 Strobe
+          </button>
+          <button 
+            type="button"
+            title="Sequentially cycle all LEDs: Green -> Yellow -> Red -> Strobe"
+            style={{ fontSize: '0.72rem', padding: '0.2rem 0.45rem', borderRadius: '4px', cursor: 'pointer', background: 'rgba(59,130,246,0.15)', border: '1px solid #3b82f6', color: '#60a5fa' }}
+            onClick={() => fetch('/api/hardware/cycle', { method: 'POST' })}
+          >
+            🔄 Cycle All
+          </button>
+        </div>
       </div>
+
 
       {/* Congestion Threshold Alert Banner */}
       {isCongested && (
