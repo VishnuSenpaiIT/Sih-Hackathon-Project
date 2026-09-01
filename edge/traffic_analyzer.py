@@ -59,6 +59,31 @@ def calculate_iou(box1: List[float], box2: List[float]) -> float:
     return inter_area / denom
 
 
+def calculate_density(
+    class_counts: Dict[str, int],
+    total_bbox_area: float,
+    frame_area: float,
+    max_density_threshold: float = 25.0
+) -> float:
+    """
+    Computes traffic density index strictly on a 0-100 scale.
+    Combines weighted vehicle count load and roadway pixel occupancy ratio.
+    """
+    if frame_area <= 0:
+        return 0.0
+
+    # Weighted vehicle units
+    weighted_units = sum(class_counts.get(cls_name, 0) * weight for cls_name, weight in VEHICLE_WEIGHTS.items())
+    count_score = min(1.0, weighted_units / max_density_threshold) * 60.0
+
+    # Area occupancy ratio (bounding box area / frame area)
+    occupancy_ratio = min(1.0, total_bbox_area / frame_area)
+    occupancy_score = occupancy_ratio * 40.0
+
+    density = min(100.0, max(0.0, count_score + occupancy_score))
+    return round(density, 2)
+
+
 class Track:
     """Represents a single persistent tracked vehicle/object across frames."""
 
@@ -244,23 +269,8 @@ class TrafficAnalyzer:
         frame_area: float,
         max_density_threshold: float = 25.0
     ) -> float:
-        """
-        Computes traffic density index strictly on a 0-100 scale.
-        Combines weighted vehicle count load and roadway pixel occupancy ratio.
-        """
-        if frame_area <= 0:
-            return 0.0
-
-        # Weighted vehicle units
-        weighted_units = sum(class_counts.get(cls_name, 0) * weight for cls_name, weight in VEHICLE_WEIGHTS.items())
-        count_score = min(1.0, weighted_units / max_density_threshold) * 60.0
-
-        # Area occupancy ratio (bounding box area / frame area)
-        occupancy_ratio = min(1.0, total_bbox_area / frame_area)
-        occupancy_score = occupancy_ratio * 40.0
-
-        density = min(100.0, max(0.0, count_score + occupancy_score))
-        return round(density, 2)
+        """Computes traffic density index strictly on a 0-100 scale."""
+        return calculate_density(class_counts, total_bbox_area, frame_area, max_density_threshold)
 
     def analyze_frame(
         self,
@@ -268,7 +278,8 @@ class TrafficAnalyzer:
         camera_id: str,
         frame_id: int,
         timestamp: Optional[float] = None,
-        custom_detections: Optional[List[Dict[str, Any]]] = None
+        custom_detections: Optional[List[Dict[str, Any]]] = None,
+        is_anomaly: bool = False
     ) -> Dict[str, Any]:
         """
         Runs object detection and multi-object tracking on a single frame.
@@ -349,5 +360,6 @@ class TrafficAnalyzer:
             "density": density,
             "queue_length": round(vehicle_count * 4.5, 1),  # Simple baseline queue estimate
             "detections": detections,
-            "processing_time_ms": processing_time_ms
+            "processing_time_ms": processing_time_ms,
+            "is_anomaly": is_anomaly
         }

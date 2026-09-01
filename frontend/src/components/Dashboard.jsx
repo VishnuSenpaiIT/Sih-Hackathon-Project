@@ -1,6 +1,20 @@
 import React from 'react';
+import HardwareBadge from './HardwareBadge';
 
-export default function Dashboard({ latestEvent }) {
+export default function Dashboard({ latestEvent, hardwareState: propHardwareState }) {
+  // Resolve hardware bridge state from props, latestEvent, or fallback
+  const currentHardwareState = propHardwareState || latestEvent?.hardware_state || {
+    connected: false,
+    mode: 'simulated',
+    last_command: latestEvent?.hardware_command || 'G',
+    port: null,
+  };
+
+  const isOverrideActive =
+    currentHardwareState.last_command === 'A' ||
+    currentHardwareState.last_command === 'OVERRIDE' ||
+    Boolean(latestEvent?.is_anomaly);
+
   const vehicleCount = latestEvent?.vehicle_count ?? 0;
   const density = latestEvent?.density ?? 0;
   const classCounts = latestEvent?.class_counts || {
@@ -36,6 +50,47 @@ export default function Dashboard({ latestEvent }) {
 
   return (
     <div className="stats-sidebar">
+      {/* Emergency Incident / Accident Override Banner */}
+      {isOverrideActive && (
+        <div className="accident-override-banner">
+          <div className="alert-header">
+            <span className="pulse-dot-red" />
+            <strong>🚨 HARDWARE OVERRIDE ACTIVE</strong>
+          </div>
+          <p>
+            Emergency incident detected. Physical/simulated signal actuator locked into emergency override.
+          </p>
+        </div>
+      )}
+
+      {/* Hardware Actuation & Physical Bridge Card */}
+      <div className="stat-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+          <h3>Hardware Bridge</h3>
+          <HardwareBadge hardwareState={currentHardwareState} />
+        </div>
+        <div className="hw-kpi-grid">
+          <div className="hw-kpi-item">
+            <span className="hw-kpi-label">Mode</span>
+            <span className="hw-kpi-val" style={{ textTransform: 'capitalize' }}>
+              {currentHardwareState.mode || 'Simulated'}
+            </span>
+          </div>
+          <div className="hw-kpi-item">
+            <span className="hw-kpi-label">Actuation</span>
+            <span className="hw-kpi-val" style={{ fontFamily: 'monospace' }}>
+              '{currentHardwareState.last_command || 'G'}'
+            </span>
+          </div>
+          <div className="hw-kpi-item">
+            <span className="hw-kpi-label">Link</span>
+            <span className="hw-kpi-val">
+              {currentHardwareState.connected ? (currentHardwareState.port || 'USB Serial') : 'Virtual Bridge'}
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Congestion Threshold Alert Banner */}
       {isCongested && (
         <div className="congestion-alert-banner">

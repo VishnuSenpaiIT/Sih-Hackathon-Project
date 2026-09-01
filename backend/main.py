@@ -14,13 +14,17 @@ load_dotenv()
 from backend.models.database import init_db
 from backend.api.routes import router as api_router
 from backend.api.websocket import ws_manager
+from backend.hardware.hardware_manager import hardware_manager
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize database tables on startup
     init_db()
+    hardware_manager.start()
     yield
+    hardware_manager.stop()
+
 
 
 app = FastAPI(

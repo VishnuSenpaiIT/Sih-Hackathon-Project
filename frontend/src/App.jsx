@@ -3,8 +3,10 @@ import CameraFeed from './components/CameraFeed';
 import Dashboard from './components/Dashboard';
 import PredictionChart from './components/PredictionChart';
 import VideoUploadModal from './components/VideoUploadModal';
+import HardwareBadge from './components/HardwareBadge';
 import {
   fetchStreams,
+  fetchHardwareStatus,
   connectTrafficWebSocket,
   uploadTrafficVideo,
   triggerSampleAnalysis,
@@ -41,6 +43,12 @@ export default function App() {
   const [latestEvent, setLatestEvent] = useState(null);
   const [cameraEvents, setCameraEvents] = useState({});
   const [wsStatus, setWsStatus] = useState('CONNECTING');
+  const [hardwareState, setHardwareState] = useState({
+    connected: false,
+    mode: 'simulated',
+    last_command: 'G',
+    port: null,
+  });
 
   // Video Analysis & Ingestion State
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -76,6 +84,20 @@ export default function App() {
       })
       .catch((err) => {
         console.warn('Using default camera configurations (API offline):', err);
+      });
+
+    // Initial hardware bridge status check (safe fallback on network/HTTP error)
+    fetchHardwareStatus()
+      .then((data) => {
+        if (data) {
+          setHardwareState((prev) => ({
+            ...prev,
+            ...data,
+          }));
+        }
+      })
+      .catch((err) => {
+        console.warn('Using simulated hardware fallback:', err);
       });
   }, []);
 
@@ -124,6 +146,20 @@ export default function App() {
             setHasUploadedCamera(true);
           }
 
+          // Sync hardware state from traffic update
+          const hwState = eventData.hardware_state || payload.hardware_state;
+          if (hwState) {
+            setHardwareState((prev) => ({
+              ...prev,
+              ...hwState,
+            }));
+          } else if (eventData.hardware_command) {
+            setHardwareState((prev) => ({
+              ...prev,
+              last_command: eventData.hardware_command,
+            }));
+          }
+
           // Track latest event per camera
           setCameraEvents((prev) => ({
             ...prev,
@@ -134,6 +170,14 @@ export default function App() {
           if (!selectedCameraId || camId === selectedCameraId) {
             setLatestEvent(eventData);
           }
+        }
+
+        // 3. Handle direct hardware broadcast events if dispatched
+        if ((payload.type === 'hardware_status' || payload.type === 'hardware_update') && payload.data) {
+          setHardwareState((prev) => ({
+            ...prev,
+            ...payload.data,
+          }));
         }
       },
       (status) => setWsStatus(status),
@@ -271,8 +315,11 @@ export default function App() {
           </div>
         </div>
 
-        {/* Header Alert, Upload Button & System Status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        {/* Header Alert, Hardware Badge, Upload Button & System Status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* Hardware Actuation Status Badge */}
+          <HardwareBadge hardwareState={hardwareState} />
+
           {/* Upload Video Button in Header */}
           <button
             type="button"
@@ -394,7 +441,7 @@ export default function App() {
         </div>
 
         {/* Right Column: Key Stats & Live Breakdown Sidebar */}
-        <Dashboard latestEvent={activeEvent} />
+        <Dashboard latestEvent={activeEvent} hardwareState={hardwareState} />
       </main>
 
       {/* Video Upload & Real-Time Analysis Progress Modal */}

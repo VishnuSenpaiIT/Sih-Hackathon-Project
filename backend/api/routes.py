@@ -25,6 +25,7 @@ from backend.utils.data_processor import (
 )
 from backend.api.websocket import ws_manager
 from backend.services.video_analyzer_service import video_analyzer_service, UPLOAD_DIR
+from backend.hardware.hardware_manager import hardware_manager
 
 router = APIRouter()
 
@@ -47,6 +48,13 @@ def health_check():
         "version": "1.0.0",
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
+
+
+@router.get("/hardware/status", tags=["Hardware"])
+def get_hardware_status():
+    """Retrieves physical/simulated Arduino traffic light hardware bridge status."""
+    return hardware_manager.get_hardware_status()
+
 
 
 @router.get("/streams", tags=["Cameras"])
@@ -139,6 +147,14 @@ async def ingest_detection(raw_event: dict, db: Session = Depends(get_db)):
     )
     db.add(obs)
     db.commit()
+
+    # Actuate hardware controller on traffic change
+    try:
+        density_val = float(normalized.get("density", 0.0))
+        is_anomaly = bool(raw_event.get("is_anomaly", False) or raw_event.get("anomaly", False))
+        hardware_manager.process_traffic_event(density=density_val, is_anomaly=is_anomaly)
+    except Exception:
+        pass
 
     # Broadcast event in real-time to active WebSocket clients
     await ws_manager.broadcast(

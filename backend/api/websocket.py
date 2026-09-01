@@ -36,6 +36,17 @@ class ConnectionManager:
 
     async def broadcast(self, message: Dict[str, Any], camera_id: Optional[str] = None):
         """Broadcasts event payload to matching subscribers and global listeners."""
+        # Attach hardware status to traffic_update messages per Hardware Integration specification
+        if isinstance(message, dict) and message.get("type") == "traffic_update":
+            try:
+                from backend.hardware.hardware_manager import hardware_manager
+                hw_state = hardware_manager.get_hardware_status()
+                message["hardware_state"] = hw_state
+                if isinstance(message.get("data"), dict):
+                    message["data"]["hardware_state"] = hw_state
+            except Exception as e:
+                logger.debug(f"Hardware status broadcast attachment error: {e}")
+
         payload_str = json.dumps(message)
         targets = list(self.active_connections.get("all", []))
         if camera_id and camera_id in self.active_connections:

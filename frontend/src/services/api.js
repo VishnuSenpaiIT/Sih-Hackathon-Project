@@ -21,6 +21,32 @@ export async function fetchHealth() {
   return res.json();
 }
 
+/**
+ * Fetch current hardware actuation bridge status (Arduino Uno / Simulated).
+ * Gracefully returns simulated defaults if backend endpoint is unavailable.
+ */
+export async function fetchHardwareStatus() {
+  try {
+    const res = await fetch(`${API_BASE}/hardware/status`);
+    if (!res.ok) {
+      return {
+        connected: false,
+        mode: 'simulated',
+        last_command: 'G',
+        port: null,
+      };
+    }
+    return await res.json();
+  } catch (err) {
+    return {
+      connected: false,
+      mode: 'simulated',
+      last_command: 'G',
+      port: null,
+    };
+  }
+}
+
 export async function fetchPredictions(cameraId, horizonHours = 6) {
   const res = await fetch(`${API_BASE}/predictions/${encodeURIComponent(cameraId)}?horizon_hours=${horizonHours}`);
   if (!res.ok) {

@@ -33,6 +33,12 @@ Defines the agent roster, scope boundaries, and coordination rules for building 
 - Owns: `demo/`, `docs/`, presentation script
 - Deliverables: `hackathon_demo.py`, synthetic fallback data, `architecture.md`, `api_reference.md`, slide outline
 
+### 7. Hardware/Embedded Agent (Actuation Layer)
+- Owns: `hardware/` folder exclusively
+- Deliverables: `hardware/firmware/traffic_controller.ino` (non-blocking `millis()` state machine, zero `delay()`), `hardware/README.md` (pin map, wiring, flashing instructions)
+- Enforces: Command protocol adherence ('G', 'Y', 'R', 'A', 'C', 'H' -> "OK"), ACCIDENT_OVERRIDE preemption, and plug-and-play synchronization with Backend's `MockArduinoController`
+- Does not touch `backend/` or `frontend/`
+
 ## Coordination Rules
 1. **Single source of truth for contracts** — the detection JSON schema and API route list live in one shared doc; any agent changing them must announce it before other agents consume the change.
 2. **No silent scope creep** — an agent finding work outside its owned folder flags it to the Orchestrator rather than touching another agent's files.

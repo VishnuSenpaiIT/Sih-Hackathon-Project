@@ -21,9 +21,15 @@ Granular task lists per agent, ordered to match `BUILD_ORDER_SIH26222.md` phases
 - [x] `backend/api/websocket.py` — live detection broadcast
 
 **Phase 2**
-- [ ] Store tracked-object history for LSTM training data
-- [ ] `backend/models/traffic_prediction.py` — serve prediction model output via API
-- [ ] Multi-camera routing (`/streams/{camera_id}`)
+- [x] Store tracked-object history for LSTM training data
+- [x] `backend/models/traffic_prediction.py` — serve prediction model output via API
+- [x] Multi-camera routing (`/streams/{camera_id}`)
+- [x] `backend/hardware/controller_interface.py` — shared HardwareController interface
+- [x] `backend/hardware/mock_controller.py` — simulated Arduino controller
+- [x] `backend/hardware/arduino_controller.py` — real pyserial controller
+- [x] `backend/hardware/hardware_manager.py` — auto-detect loop, live swap, safe handshake
+- [x] `GET /api/hardware/status` endpoint
+- [x] Add `hardware_state` field to existing WebSocket broadcast
 
 **Phase 3**
 - [ ] API auth (basic token) for demo safety
@@ -34,6 +40,7 @@ Granular task lists per agent, ordered to match `BUILD_ORDER_SIH26222.md` phases
 - [x] `edge/traffic_analyzer.py` — YOLOv8n inference wrapper, target <100ms/frame
 - [x] Vehicle classification: car/bus/truck/bike/pedestrian
 - [x] Density estimation function (0–100 scale)
+- [x] Confirm density score (0-100) + anomaly flag shape for `hardware_manager.py` consumption
 
 **Phase 2**
 - [x] Integrate DeepSORT or ByteTrack for cross-frame tracking
@@ -44,6 +51,16 @@ Granular task lists per agent, ordered to match `BUILD_ORDER_SIH26222.md` phases
 **Phase 3**
 - [ ] Optimize inference for Raspberry Pi / Jetson Nano
 - [ ] Basic anomaly/congestion flag logic
+
+## 🔌 Hardware/Embedded Agent
+**Phase 1 (Simulation & Protocol Specification)**
+- [x] Review and freeze command protocol ('G', 'Y', 'R', 'A', 'C', 'H')
+- [x] Cross-check `mock_controller.py` matches real firmware behavior
+
+**Phase 2 (Firmware & Hardware Bench Setup)**
+- [x] `hardware/firmware/traffic_controller.ino` — NORMAL + ACCIDENT_OVERRIDE, non-blocking `millis()`, zero `delay()`, 'H'->'OK' handshake
+- [x] `hardware/README.md` — pin map, wiring diagram, upload/flashing instructions
+- [x] Self-verify non-blocking loop (<100us) & accident preemption
 
 ## 🎨 Frontend Agent
 **Phase 1**
@@ -56,6 +73,9 @@ Granular task lists per agent, ordered to match `BUILD_ORDER_SIH26222.md` phases
 - [x] `PredictionChart.jsx` — 1–6hr forecast visualization (Pure SVG/React, Zero-bloat)
 - [x] Multi-camera switcher UI (tabs with live status & density indicators)
 - [ ] Congestion heatmap view
+- [x] Hardware status badge (`Simulated` / `Connected` / `Offline`) in dashboard header consuming `hardware_state`
+- [x] Confirm rest of dashboard renders identically in all three states
+
 
 **Phase 3**
 - [ ] Alert/notification component

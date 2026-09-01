@@ -111,25 +111,49 @@ class TrafficPredictor:
         self._try_load_weights()
 
     def _try_load_weights(self):
-        if os.path.exists(MODEL_WEIGHTS_PATH):
-            self.gru.load_weights(MODEL_WEIGHTS_PATH)
+        paths = [
+            MODEL_WEIGHTS_PATH,
+            "backend/models/traffic_lstm.npz",
+            "notebooks/traffic_lstm_weights.npz",
+            os.path.join(os.path.dirname(__file__), "traffic_lstm.npz")
+        ]
+        for p in paths:
+            if p and os.path.exists(p) and self.gru.load_weights(p):
+                return
 
     def _build_sequence(self, history: List[Any]) -> np.ndarray:
         """
-        Converts ORM observation rows into a normalized GRU input sequence.
+        Converts ORM observation rows or dicts into a normalized GRU input sequence.
         Pads with mean values if fewer than SEQ_LEN rows are available.
         """
+        def _get_val(obj, attr, default=0.0):
+            if hasattr(obj, attr):
+                return getattr(obj, attr)
+            if isinstance(obj, dict):
+                return obj.get(attr, default)
+            return default
+
         rows = list(reversed(history[-self.SEQ_LEN:]))
-        mean_density = np.mean([r.density for r in rows]) if rows else 45.0
-        mean_count = np.mean([r.vehicle_count for r in rows]) if rows else 15.0
+        mean_density = np.mean([_get_val(r, "density", 45.0) for r in rows]) if rows else 45.0
+        mean_count = np.mean([_get_val(r, "vehicle_count", 15.0) for r in rows]) if rows else 15.0
 
         seq = []
         for row in rows:
-            ts = row.timestamp if hasattr(row.timestamp, "hour") else datetime.now(timezone.utc)
+            ts_val = _get_val(row, "timestamp", None)
+            if isinstance(ts_val, str):
+                try:
+                    ts = datetime.fromisoformat(ts_val.replace("Z", "+00:00"))
+                except Exception:
+                    ts = datetime.now(timezone.utc)
+            elif hasattr(ts_val, "hour"):
+                ts = ts_val
+            else:
+                ts = datetime.now(timezone.utc)
+
             hour = ts.hour + ts.minute / 60.0
             hour_sin = math.sin(2 * math.pi * hour / 24.0)
-            density_norm = row.density / 100.0
-            count_norm = min(1.0, row.vehicle_count / 80.0)
+            density_norm = _get_val(row, "density", 45.0) / 100.0
+            count_norm = min(1.0, _get_val(row, "vehicle_count", 15.0) / 80.0)
             seq.append([density_norm, count_norm, hour_sin])
 
         # Pad if shorter than SEQ_LEN
@@ -148,22 +172,37 @@ class TrafficPredictor:
         Generates a multi-step traffic forecast for the specified horizon.
         Returns forecast dict conforming to the prediction response schema.
         """
+        def _get_val(obj, attr, default=0.0):
+            if hasattr(obj, attr):
+                return getattr(obj, attr)
+            if isinstance(obj, dict):
+                return obj.get(attr, default)
+            return default
+
         now = datetime.now(timezone.utc)
-        base_density = history[0].density if history else 45.0
-        base_count = history[0].vehicle_count if history else 15.0
+        base_density = _get_val(history[0], "density", 45.0) if history else 45.0
+        base_count = _get_val(history[0], "vehicle_count", 15.0) if history else 15.0
 
-        model_used = "heuristic_diurnal"
-
-        if self.gru._trained and len(history) >= MIN_HISTORY_POINTS:
-            try:
-                X = self._build_sequence(history)
-                gru_delta = self.gru.forward(X)  # Raw GRU output is a density delta
-                model_used = "gru_pretrained"
-            except Exception as e:
-                logger.warning(f"GRU inference failed: {e}. Falling back to heuristic.")
-                gru_delta = 0.0
-        else:
+        if not history or len(history) < MIN_HISTORY_POINTS:
+            status_str = "fallback"
+            model_used = "heuristic_diurnal"
             gru_delta = 0.0
+        else:
+            status_str = "model"
+            if self.gru._trained:
+                try:
+                    X = self._build_sequence(history)
+                    gru_delta = self.gru.forward(X)  # Raw GRU output is a density delta
+                    model_used = "gru_pretrained"
+                except Exception as e:
+                    logger.warning(f"GRU inference failed: {e}. Falling back to heuristic.")
+                    gru_delta = 0.0
+                    model_used = "sequential_heuristic"
+            else:
+                gru_delta = 0.0
+                model_used = "sequential_heuristic"
+
+
 
         forecast = []
         for h in range(1, horizon_hours + 1):
@@ -199,7 +238,7 @@ class TrafficPredictor:
             "horizon_hours": horizon_hours,
             "generated_at": now.isoformat(),
             "model_used": model_used,
-            "status": "active",
+            "status": status_str,
             "peak_hour_offset": peak["hour_offset"],
             "peak_predicted_density": peak["predicted_density"],
             "forecast": forecast

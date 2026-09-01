@@ -38,6 +38,7 @@ from backend.models.database import (
     CameraModel
 )
 from backend.api.websocket import ws_manager
+from backend.hardware.hardware_manager import hardware_manager
 
 logger = logging.getLogger("VideoAnalyzerService")
 
@@ -474,9 +475,16 @@ class VideoAnalyzerService:
                     "density": density,
                     "queue_length": queue_length,
                     "detections": tracked_detections,
-                    "processing_time_ms": proc_time_ms
+                    "processing_time_ms": proc_time_ms,
+                    "is_anomaly": False
                 }
                 normalized = normalize_detection_payload(raw_event)
+
+                # Actuate hardware controller on traffic state change (on-change only)
+                try:
+                    hardware_manager.process_traffic_event(density=density, is_anomaly=False)
+                except Exception as hw_err:
+                    logger.debug(f"Hardware dispatch error: {hw_err}")
 
                 # 8. Persist observation to relational database
                 try:

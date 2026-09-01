@@ -17,6 +17,9 @@ Order matters — each step unblocks the next:
 - [x] 5. DB models + migrations (`backend/models/database.py`) — Postgres + SQLite fallback ✅ Done
 - [x] 6. WebSocket broadcast (`backend/api/websocket.py`) — push live detection data ✅ Done
 - [x] 7. React dashboard skeleton (`frontend/src/App.jsx`) — connect to WebSocket, render raw counts ✅ Done
+- [x] 8. Hardware Controller Abstraction (`backend/hardware/`) — `HardwareController` ABC, `MockArduinoController`, auto-detect `HardwareManager` ✅ Done
+- [x] 9. Hardware Status API & WebSocket — `GET /api/hardware/status` and `hardware_state` broadcast field ✅ Done
+- [x] 10. Dashboard Hardware Badge — status badge (`Simulated` / `Connected` / `Offline`) consuming `hardware_state` ✅ Done
 
 **Checkpoint:** live camera → detection → dashboard number updates end-to-end. (Ready for verification)
 
@@ -24,9 +27,10 @@ Order matters — each step unblocks the next:
 - [x] 1. DeepSORT/ByteTrack tracking (depends on Phase 1 step 2) ✅ Done
 - [x] 2. LSTM training notebook (`notebooks/model_training.ipynb`) — depends on stored historical data from step 1.5 ✅ Done
 - [x] 3. Prediction service (`backend/models/traffic_prediction.py`) — depends on step 2 ✅ Done
-4. `PredictionChart.jsx` — depends on step 3
-5. Multi-camera config support — depends on Phase 0 step 3
-6. Edge optimization pass for Raspberry Pi — depends on all Phase 1 CV code
+- [x] 4. `PredictionChart.jsx` — depends on step 3 ✅ Done
+- [x] 5. Multi-camera config support — depends on Phase 0 step 3 ✅ Done
+- [ ] 6. Edge optimization pass for Raspberry Pi — depends on all Phase 1 CV code
+- [x] 7. Real Arduino controller (`backend/hardware/arduino_controller.py`) + non-blocking firmware (`hardware/firmware/traffic_controller.ino`) ✅ Done
 
 ## Phase 3 — Demo Hardening (Week 5)
 1. Synthetic traffic fallback (`demo/synthetic_traffic.py`)
