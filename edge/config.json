@@ -1,0 +1,36 @@
+{
+  "version": "1.0.0",
+  "global_settings": {
+    "target_fps": 5,
+    "reconnect_delay_sec": 3,
+    "confidence_threshold": 0.40
+  },
+  "cameras": [
+    {
+      "id": "cam_01",
+      "name": "Connaught Place Junction",
+      "stream_url": "demo/sample_videos/traffic_sample_01.mp4",
+      "location": {
+        "latitude": 28.6315,
+        "longitude": 77.2167,
+        "junction_name": "Outer Circle Junction"
+      },
+      "enabled": true,
+      "fps": 5,
+      "source_type": "file"
+    },
+    {
+      "id": "cam_mobile_demo",
+      "name": "Mobile Live Stream (Demo)",
+      "stream_url": "http://192.168.1.100:8080/video",
+      "location": {
+        "latitude": 28.6139,
+        "longitude": 77.2090,
+        "junction_name": "Mobile Field Test"
+      },
+      "enabled": false,
+      "fps": 5,
+      "source_type": "mobile_http"
+    }
+  ]
+}

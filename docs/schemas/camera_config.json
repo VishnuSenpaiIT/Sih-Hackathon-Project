@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CameraConfigSchema",
+  "description": "Configuration schema for registered camera streams and edge video ingestion nodes.",
+  "type": "object",
+  "properties": {
+    "version": { "type": "string" },
+    "global_settings": {
+      "type": "object",
+      "properties": {
+        "target_fps": { "type": "number", "default": 5 },
+        "reconnect_delay_sec": { "type": "integer", "default": 3 },
+        "confidence_threshold": { "type": "number", "default": 0.40 }
+      },
+      "required": ["target_fps", "reconnect_delay_sec"]
+    },
+    "cameras": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "stream_url": { "type": "string" },
+          "location": {
+            "type": "object",
+            "properties": {
+              "latitude": { "type": "number" },
+              "longitude": { "type": "number" },
+              "junction_name": { "type": "string" }
+            }
+          },
+          "enabled": { "type": "boolean", "default": true },
+          "fps": { "type": "number", "default": 5 },
+          "source_type": {
+            "type": "string",
+            "enum": ["rtsp", "file", "webcam", "mobile_http"]
+          }
+        },
+        "required": ["id", "name", "stream_url", "enabled"]
+      }
+    }
+  },
+  "required": ["cameras"]
+}

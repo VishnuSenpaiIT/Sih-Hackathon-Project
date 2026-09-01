@@ -1,0 +1,29 @@
+# ==============================================================================
+# Smart Traffic Monitoring & Prediction System (SIH26222)
+# Core Python Dependencies (Strictly vetted against Minimal Bloat Directive)
+# ==============================================================================
+
+# Backend API & WebSockets
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+websockets>=12.0
+pydantic>=2.6.0
+python-dotenv>=1.0.1
+
+# Database & Persistence (Lean PostgreSQL access with SQLite local fallback support)
+sqlalchemy>=2.0.28
+asyncpg>=0.29.0
+psycopg2-binary>=2.9.9
+
+# Computer Vision & Detection Pipeline
+opencv-python-headless>=4.9.0.80
+numpy>=1.26.0
+ultralytics>=8.1.0
+
+# HTTP client & Utilities
+httpx>=0.27.0
+requests>=2.31.0
+
+# Testing & Quality
+pytest>=8.1.0
+pytest-asyncio>=0.23.5

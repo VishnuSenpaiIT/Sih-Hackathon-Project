@@ -1,0 +1,62 @@
+version: '3.8'
+
+# ==============================================================================
+# Smart Traffic Monitoring & Prediction System (SIH26222)
+# Docker Compose: Lean MVP Infrastructure
+# ==============================================================================
+
+services:
+  # Primary Relational & Time-Series Data Store (PostgreSQL)
+  postgres:
+    image: postgres:16-alpine
+    container_name: sih_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-traffic_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-traffic_secure_password}
+      POSTGRES_DB: ${POSTGRES_DB:-smart_traffic_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U traffic_admin -d smart_traffic_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sih_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - ENVIRONMENT=production
+      - BACKEND_HOST=0.0.0.0
+      - BACKEND_PORT=8000
+      - DATABASE_URL=postgresql://traffic_admin:traffic_secure_password@postgres:5432/smart_traffic_db
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./edge/config.json:/app/edge/config.json:ro
+
+  # React + Vite Frontend (Nginx alpine or Node dev)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sih_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+
+volumes:
+  postgres_data:
